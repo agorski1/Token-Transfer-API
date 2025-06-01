@@ -3,7 +3,9 @@ package wallet
 import (
 	"context"
 	"log"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/agorski1/token-transfer-api/db"
 	"github.com/agorski1/token-transfer-api/internal/graph/model"
@@ -12,6 +14,19 @@ import (
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
 )
+
+type testCase struct {
+	name   string
+	from   string
+	to     string
+	amount int32
+}
+
+type result struct {
+	success bool
+	balance int32
+	err     error
+}
 
 func newTestService(t *testing.T) (*gorm.DB, *WalletService) {
 	t.Helper()
@@ -133,4 +148,61 @@ func TestTransfer_FailsWhenInsufficientBalance(t *testing.T) {
 	assert.Error(t, err)
 	assert.Nil(t, result)
 	assert.Contains(t, err.Error(), "insufficient balance")
+}
+
+func TestMutationTransfer_ParallelTransactions(t *testing.T) {
+	tx, service := newTestService(t)
+	ctx := context.Background()
+
+	// Given
+	tests := []testCase{
+		{"plus1", "0x2000000000000000000000000000000000000000", "0x1000000000000000000000000000000000000000", 1},
+		{"minus4", "0x1000000000000000000000000000000000000000", "0x3000000000000000000000000000000000000000", 4},
+		{"minus7", "0x1000000000000000000000000000000000000000", "0x4000000000000000000000000000000000000000", 7},
+	}
+
+	expectedBalances := map[[3]bool]int32{
+		{true, true, false}: 7,
+		{true, false, true}: 4,
+		{true, true, true}:  0,
+	}
+
+	var wg sync.WaitGroup
+	start := make(chan struct{})
+	results := make([]result, len(tests))
+
+	for i, tc := range tests {
+		wg.Add(1)
+		go func(i int, tc testCase) {
+			defer wg.Done()
+			canAfford, err := service.CanAfford(ctx, tc.from, tc.amount) // Ensure precondition (can afford)
+			require.NoError(t, err, "CanAfford failed for test case %q", tc.name)
+			require.True(t, canAfford, "Sender cannot afford amount in %q", tc.name)
+
+			<-start // wait for all goroutines to start
+
+			// When
+			transfer, err := service.Transfer(ctx, tc.from, tc.to, tc.amount)
+			if err != nil {
+				t.Logf("Transfer failed for %q: %v", tc.name, err)
+				results[i] = result{false, 0, err}
+			} else {
+				results[i] = result{true, transfer.Balance, nil}
+			}
+		}(i, tc)
+	}
+
+	time.Sleep(200 * time.Millisecond)
+	close(start)
+	wg.Wait()
+
+	// Then
+	var wallet model.Wallet
+	require.NoError(t, tx.Find(&wallet, "address = ?", "0x1000000000000000000000000000000000000000").Error)
+
+	resultKey := [3]bool{results[0].success, results[1].success, results[2].success}
+
+	expectedBalance, ok := expectedBalances[resultKey]
+	require.True(t, ok, "Unexpected transfer result combination: %+v", resultKey)
+	assert.Equal(t, expectedBalance, int32(wallet.Balance), "Final balance mismatch")
 }
