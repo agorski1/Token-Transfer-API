@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	model1 "github.com/agorski1/token-transfer-api/internal/graph/model"
+	"github.com/agorski1/token-transfer-api/internal/graph/model"
 )
 
 // This file will not be regenerated automatically.
@@ -13,7 +13,7 @@ import (
 
 type Resolver struct{}
 
-func (r *mutationResolver) Transfer(ctx context.Context, fromAddress string, toAddress string, amount int32) (*model1.TransferResult, error) {
+func (r *mutationResolver) Transfer(ctx context.Context, fromAddress string, toAddress string, amount int32) (*model.TransferResult, error) {
 	panic(fmt.Errorf("not implemented: Transfer - transfer"))
 }
 
