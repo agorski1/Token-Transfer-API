@@ -1,32 +1,21 @@
 package graph
 
-import (
-	"context"
-	"fmt"
-
-	"github.com/agorski1/token-transfer-api/internal/graph/model"
-)
+import "github.com/agorski1/token-transfer-api/internal/wallet"
 
 // This file will not be regenerated automatically.
 //
 // It serves as dependency injection for your app, add any dependencies you require here.
 
-type Resolver struct{}
-
-func (r *mutationResolver) Transfer(ctx context.Context, fromAddress string, toAddress string, amount int32) (*model.TransferResult, error) {
-	panic(fmt.Errorf("not implemented: Transfer - transfer"))
-}
-
-// CanAfford is the resolver for the canAfford field.
-func (r *queryResolver) CanAfford(ctx context.Context, address string, amount int32) (bool, error) {
-	panic(fmt.Errorf("not implemented: CanAfford - canAfford"))
+type Resolver struct {
+	WalletService *wallet.WalletService
 }
 
 // Mutation returns MutationResolver implementation.
-func (r *Resolver) Mutation() MutationResolver { return &mutationResolver{r} }
+func (r *Resolver) Mutation() MutationResolver {
+	return wallet.NewMutationResolver(r.WalletService)
+}
 
 // Query returns QueryResolver implementation.
-func (r *Resolver) Query() QueryResolver { return &queryResolver{r} }
-
-type mutationResolver struct{ *Resolver }
-type queryResolver struct{ *Resolver }
+func (r *Resolver) Query() QueryResolver {
+	return wallet.NewQueryResolver(r.WalletService)
+}

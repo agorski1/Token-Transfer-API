@@ -206,3 +206,35 @@ func TestMutationTransfer_ParallelTransactions(t *testing.T) {
 	require.True(t, ok, "Unexpected transfer result combination: %+v", resultKey)
 	assert.Equal(t, expectedBalance, int32(wallet.Balance), "Final balance mismatch")
 }
+
+func TestCanAfford_Success(t *testing.T) {
+	_, service := newTestService(t)
+	ctx := context.Background()
+
+	// Given
+	address := "0x0000000000000000000000000000000000000000"
+	amount := int32(100)
+
+	// When
+	canAfford, err := service.CanAfford(ctx, address, amount)
+
+	// Then
+	assert.NoError(t, err)
+	assert.True(t, canAfford)
+}
+
+func TestCanAfford_InsufficientFunds(t *testing.T) {
+	_, service := newTestService(t)
+	ctx := context.Background()
+
+	// Given
+	address := "0x1000000000000000000000000000000000000000" // np. ma 10
+	amount := int32(10000)
+
+	// When
+	canAfford, err := service.CanAfford(ctx, address, amount)
+
+	// Then
+	assert.NoError(t, err)
+	assert.False(t, canAfford)
+}
