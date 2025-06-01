@@ -52,45 +52,45 @@ func newTestService(t *testing.T) (*gorm.DB, *WalletService) {
 func TestTransfer_Success(t *testing.T) {
 	tx, service := newTestService(t)
 	ctx := context.Background()
-	var fromWallet, toWallet model.Wallet
+	var srcWallet, dstWallet model.Wallet
 
 	// Given
-	fromAddr := "0x0000000000000000000000000000000000000000"
-	toAddr := "0x1000000000000000000000000000000000000000"
+	srcAddress := "0x0000000000000000000000000000000000000000"
+	dstAddress := "0x1000000000000000000000000000000000000000"
 	amount := 500
 
 	// When
-	result, err := service.Transfer(ctx, fromAddr, toAddr, int32(amount))
-	require.NoError(t, tx.Where("address = ?", fromAddr).First(&fromWallet).Error)
-	require.NoError(t, tx.Where("address = ?", toAddr).First(&toWallet).Error)
+	result, err := service.Transfer(ctx, srcAddress, dstAddress, int32(amount))
+	require.NoError(t, tx.Where("address = ?", srcAddress).First(&srcWallet).Error)
+	require.NoError(t, tx.Where("address = ?", dstAddress).First(&dstWallet).Error)
 
 	// Then
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.Equal(t, int32(999500), result.Balance)
-	assert.Equal(t, int32(999500), fromWallet.Balance)
-	assert.Equal(t, int32(510), toWallet.Balance)
+	assert.Equal(t, int32(999500), srcWallet.Balance)
+	assert.Equal(t, int32(510), dstWallet.Balance)
 }
 
-func TestTransfer_CreatesToWalletIfNotExists(t *testing.T) {
+func TestTransfer_CreatesdstWalletIfNotExists(t *testing.T) {
 	tx, service := newTestService(t)
 	ctx := context.Background()
-	var toWallet model.Wallet
+	var dstWallet model.Wallet
 
 	// Given
-	fromAddr := "0x0000000000000000000000000000000000000000"
-	toAddr := "0x4000000000000000000000000000000000000000"
+	srcAddress := "0x0000000000000000000000000000000000000000"
+	dstAddress := "0x4000000000000000000000000000000000000000"
 	amount := 500
 
 	// When
-	result, err := service.Transfer(ctx, fromAddr, toAddr, int32(amount))
-	err2 := tx.Where("address = ?", toAddr).First(&toWallet).Error
+	result, err := service.Transfer(ctx, srcAddress, dstAddress, int32(amount))
+	err2 := tx.Where("address = ?", dstAddress).First(&dstWallet).Error
 
 	// Then
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.NoError(t, err2)
-	assert.Equal(t, int32(500), toWallet.Balance)
+	assert.Equal(t, int32(500), dstWallet.Balance)
 }
 
 func TestTransfer_FailsWhenAmountIsZeroOrNegative(t *testing.T) {
@@ -98,14 +98,14 @@ func TestTransfer_FailsWhenAmountIsZeroOrNegative(t *testing.T) {
 	ctx := context.Background()
 
 	// Given
-	fromAddr := "0x0000000000000000000000000000000000000000"
-	toAddr := "0x1000000000000000000000000000000000000000"
+	srcAddress := "0x0000000000000000000000000000000000000000"
+	dstAddress := "0x1000000000000000000000000000000000000000"
 
 	invalidAmounts := []int32{0, -10}
 
 	for _, amount := range invalidAmounts {
 		// When
-		result, err := service.Transfer(ctx, fromAddr, toAddr, amount)
+		result, err := service.Transfer(ctx, srcAddress, dstAddress, amount)
 
 		// Then
 		assert.Error(t, err)
@@ -119,12 +119,12 @@ func TestTransfer_FailsWhenSourceWalletNotFound(t *testing.T) {
 	ctx := context.Background()
 
 	// Given
-	fromAddr := "0xnonexistent_from"
-	toAddr := "0x1000000000000000000000000000000000000000"
+	srcAddress := "0xnonexistent_from"
+	dstAddress := "0x1000000000000000000000000000000000000000"
 	amount := int32(10)
 
 	// When
-	result, err := service.Transfer(ctx, fromAddr, toAddr, amount)
+	result, err := service.Transfer(ctx, srcAddress, dstAddress, amount)
 
 	// Then
 	assert.Error(t, err)
@@ -137,12 +137,12 @@ func TestTransfer_FailsWhenInsufficientBalance(t *testing.T) {
 	ctx := context.Background()
 
 	// Given
-	fromAddr := "0x2000000000000000000000000000000000000000"
-	toAddr := "0x1000000000000000000000000000000000000000"
+	srcAddress := "0x2000000000000000000000000000000000000000"
+	dstAddress := "0x1000000000000000000000000000000000000000"
 	amount := int32(20)
 
 	// When
-	result, err := service.Transfer(ctx, fromAddr, toAddr, amount)
+	result, err := service.Transfer(ctx, srcAddress, dstAddress, amount)
 
 	// Then
 	assert.Error(t, err)

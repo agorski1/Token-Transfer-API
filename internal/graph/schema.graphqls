@@ -3,7 +3,7 @@
 # https://gqlgen.com/getting-started/
 
 type Mutation {
-  transfer(from_address: String!, to_address: String!, amount: Int!): TransferResult!
+  transfer(srcAddress: String!, dstAddress: String!, amount: Int!): TransferResult!
 }
 
 type Query {

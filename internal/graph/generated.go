@@ -48,7 +48,7 @@ type DirectiveRoot struct {
 
 type ComplexityRoot struct {
 	Mutation struct {
-		Transfer func(childComplexity int, fromAddress string, toAddress string, amount int32) int
+		Transfer func(childComplexity int, srcAddress string, dstAddress string, amount int32) int
 	}
 
 	Query struct {
@@ -61,7 +61,7 @@ type ComplexityRoot struct {
 }
 
 type MutationResolver interface {
-	Transfer(ctx context.Context, fromAddress string, toAddress string, amount int32) (*model.TransferResult, error)
+	Transfer(ctx context.Context, srcAddress string, dstAddress string, amount int32) (*model.TransferResult, error)
 }
 type QueryResolver interface {
 	CanAfford(ctx context.Context, address string, amount int32) (bool, error)
@@ -96,7 +96,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.Transfer(childComplexity, args["from_address"].(string), args["to_address"].(string), args["amount"].(int32)), true
+		return e.complexity.Mutation.Transfer(childComplexity, args["srcAddress"].(string), args["dstAddress"].(string), args["amount"].(int32)), true
 
 	case "Query.canAfford":
 		if e.complexity.Query.CanAfford == nil {
@@ -243,16 +243,16 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 func (ec *executionContext) field_Mutation_transfer_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := ec.field_Mutation_transfer_argsFromAddress(ctx, rawArgs)
+	arg0, err := ec.field_Mutation_transfer_argsSrcAddress(ctx, rawArgs)
 	if err != nil {
 		return nil, err
 	}
-	args["from_address"] = arg0
-	arg1, err := ec.field_Mutation_transfer_argsToAddress(ctx, rawArgs)
+	args["srcAddress"] = arg0
+	arg1, err := ec.field_Mutation_transfer_argsDstAddress(ctx, rawArgs)
 	if err != nil {
 		return nil, err
 	}
-	args["to_address"] = arg1
+	args["dstAddress"] = arg1
 	arg2, err := ec.field_Mutation_transfer_argsAmount(ctx, rawArgs)
 	if err != nil {
 		return nil, err
@@ -260,12 +260,12 @@ func (ec *executionContext) field_Mutation_transfer_args(ctx context.Context, ra
 	args["amount"] = arg2
 	return args, nil
 }
-func (ec *executionContext) field_Mutation_transfer_argsFromAddress(
+func (ec *executionContext) field_Mutation_transfer_argsSrcAddress(
 	ctx context.Context,
 	rawArgs map[string]any,
 ) (string, error) {
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("from_address"))
-	if tmp, ok := rawArgs["from_address"]; ok {
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("srcAddress"))
+	if tmp, ok := rawArgs["srcAddress"]; ok {
 		return ec.unmarshalNString2string(ctx, tmp)
 	}
 
@@ -273,12 +273,12 @@ func (ec *executionContext) field_Mutation_transfer_argsFromAddress(
 	return zeroVal, nil
 }
 
-func (ec *executionContext) field_Mutation_transfer_argsToAddress(
+func (ec *executionContext) field_Mutation_transfer_argsDstAddress(
 	ctx context.Context,
 	rawArgs map[string]any,
 ) (string, error) {
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("to_address"))
-	if tmp, ok := rawArgs["to_address"]; ok {
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("dstAddress"))
+	if tmp, ok := rawArgs["dstAddress"]; ok {
 		return ec.unmarshalNString2string(ctx, tmp)
 	}
 
@@ -477,7 +477,7 @@ func (ec *executionContext) _Mutation_transfer(ctx context.Context, field graphq
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().Transfer(rctx, fc.Args["from_address"].(string), fc.Args["to_address"].(string), fc.Args["amount"].(int32))
+		return ec.resolvers.Mutation().Transfer(rctx, fc.Args["srcAddress"].(string), fc.Args["dstAddress"].(string), fc.Args["amount"].(int32))
 	})
 	if err != nil {
 		ec.Error(ctx, err)

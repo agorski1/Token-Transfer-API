@@ -22,8 +22,8 @@ func NewQueryResolver(s *WalletService) *queryResolver {
 	return &queryResolver{WalletService: s}
 }
 
-func (r *mutationResolver) Transfer(ctx context.Context, fromAddress string, toAddress string, amount int32) (*model.TransferResult, error) {
-	return r.WalletService.Transfer(ctx, fromAddress, toAddress, amount)
+func (r *mutationResolver) Transfer(ctx context.Context, srcAddress string, dstAddress string, amount int32) (*model.TransferResult, error) {
+	return r.WalletService.Transfer(ctx, srcAddress, dstAddress, amount)
 }
 
 func (r *queryResolver) CanAfford(ctx context.Context, address string, amount int32) (bool, error) {

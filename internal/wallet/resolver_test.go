@@ -14,12 +14,12 @@ func TestMutationResolver_Transfer(t *testing.T) {
 	ctx := context.Background()
 
 	// Given
-	fromAddr := "0x0000000000000000000000000000000000000000"
-	toAddr := "0x1000000000000000000000000000000000000000"
+	srcAddress := "0x0000000000000000000000000000000000000000"
+	dstAddress := "0x1000000000000000000000000000000000000000"
 	amount := int32(10)
 
 	// When
-	result, err := resolver.Transfer(ctx, fromAddr, toAddr, amount)
+	result, err := resolver.Transfer(ctx, srcAddress, dstAddress, amount)
 
 	// Then
 	assert.NoError(t, err)

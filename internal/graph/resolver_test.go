@@ -74,7 +74,7 @@ func resetTestWallets(t *testing.T, db *gorm.DB) {
 func buildTransferQuery(from, to string, amount int) string {
 	return fmt.Sprintf(`
 		mutation {
-			transfer(from_address: "%s", to_address: "%s", amount: %d) {
+			transfer(srcAddress: "%s", dstAddress: "%s", amount: %d) {
 				balance
 			}
 		}
@@ -123,12 +123,12 @@ func TestGraphMutationTransfer_Success(t *testing.T) {
 	// Given
 	db, server := newTestServer(t)
 	defer server.Close()
-	fromAddr := "0x0000000000000000000000000000000000000000"
-	toAddr := "0x1000000000000000000000000000000000000000"
+	srcAddress := "0x0000000000000000000000000000000000000000"
+	dstAddress := "0x1000000000000000000000000000000000000000"
 	amount := 1000
-	query := buildTransferQuery(fromAddr, toAddr, amount)
+	query := buildTransferQuery(srcAddress, dstAddress, amount)
 	var result TransferResponse
-	var fromWallet, toWallet model.Wallet
+	var srcWallet, dstWallet model.Wallet
 
 	// When
 	resp, err := doGraphQLRequest(t, server.URL, query)
@@ -138,30 +138,30 @@ func TestGraphMutationTransfer_Success(t *testing.T) {
 	err = json.NewDecoder(resp.Body).Decode(&result)
 	require.NoError(t, err, "Failed to decode response")
 
-	err = db.Find(&fromWallet, "address = ?", fromAddr).Error
-	require.NoError(t, err, "Failed to find fromWallet")
+	err = db.Find(&srcWallet, "address = ?", srcAddress).Error
+	require.NoError(t, err, "Failed to find srcWallet")
 
-	err = db.Find(&toWallet, "address = ?", toAddr).Error
-	require.NoError(t, err, "Failed to find toWallet")
+	err = db.Find(&dstWallet, "address = ?", dstAddress).Error
+	require.NoError(t, err, "Failed to find dstWallet")
 
 	// Then
 	assert.Equal(t, http.StatusOK, resp.StatusCode, "Expected HTTP status OK")
 	assert.Empty(t, result.Errors, "Expected no GraphQL errors")
 	assert.Equal(t, 999000, result.Data.Transfer.Balance, "Expected correct transfer balance")
-	assert.Equal(t, int32(999000), fromWallet.Balance, "Expected correct fromWallet balance")
-	assert.Equal(t, int32(1010), toWallet.Balance, "Expected correct toWallet balance")
+	assert.Equal(t, int32(999000), srcWallet.Balance, "Expected correct srcWallet balance")
+	assert.Equal(t, int32(1010), dstWallet.Balance, "Expected correct dstWallet balance")
 }
 
 func TestGraphMutationTransfer_NegativeAmount(t *testing.T) {
 	// Given
 	db, server := newTestServer(t)
 	defer server.Close()
-	fromAddr := "0x0000000000000000000000000000000000000000"
-	toAddr := "0xBob"
+	srcAddress := "0x0000000000000000000000000000000000000000"
+	dstAddress := "0xBob"
 	amount := -1000
-	query := buildTransferQuery(fromAddr, toAddr, amount)
+	query := buildTransferQuery(srcAddress, dstAddress, amount)
 	var result TransferResponse
-	var fromWallet, toWallet model.Wallet
+	var srcWallet, dstWallet model.Wallet
 
 	// When
 	resp, err := doGraphQLRequest(t, server.URL, query)
@@ -171,30 +171,30 @@ func TestGraphMutationTransfer_NegativeAmount(t *testing.T) {
 	err = json.NewDecoder(resp.Body).Decode(&result)
 	require.NoError(t, err, "Failed to decode response")
 
-	err = db.Find(&fromWallet, "address = ?", fromAddr).Error
-	require.NoError(t, err, "Failed to find fromWallet")
+	err = db.Find(&srcWallet, "address = ?", srcAddress).Error
+	require.NoError(t, err, "Failed to find srcWallet")
 
-	err = db.Find(&toWallet, "address = ?", toAddr).Error
-	require.NoError(t, err, "Failed to find toWallet")
+	err = db.Find(&dstWallet, "address = ?", dstAddress).Error
+	require.NoError(t, err, "Failed to find dstWallet")
 
 	// Then
 	assert.Equal(t, http.StatusOK, resp.StatusCode, "Expected HTTP status OK")
 	assert.NotEmpty(t, result.Errors, "Expected GraphQL errors")
 	assert.Contains(t, result.Errors[0].Message, "amount must be greater than 0", "Expected error message about negative amount")
-	assert.Equal(t, int32(1000000), fromWallet.Balance, "Expected unchanged fromWallet balance")
-	assert.Equal(t, int32(0), toWallet.Balance, "Expected unchanged toWallet balance")
+	assert.Equal(t, int32(1000000), srcWallet.Balance, "Expected unchanged srcWallet balance")
+	assert.Equal(t, int32(0), dstWallet.Balance, "Expected unchanged dstWallet balance")
 }
 
 func TestGraphMutationTransfer_InsufficientBalance(t *testing.T) {
 	// Given
 	db, server := newTestServer(t)
 	defer server.Close()
-	fromAddr := "0x0000000000000000000000000000000000000000"
-	toAddr := "0xBob"
+	srcAddress := "0x0000000000000000000000000000000000000000"
+	dstAddress := "0xBob"
 	amount := 2000000
-	query := buildTransferQuery(fromAddr, toAddr, amount)
+	query := buildTransferQuery(srcAddress, dstAddress, amount)
 	var result TransferResponse
-	var fromWallet, toWallet model.Wallet
+	var srcWallet, dstWallet model.Wallet
 
 	// When
 	resp, err := doGraphQLRequest(t, server.URL, query)
@@ -204,28 +204,28 @@ func TestGraphMutationTransfer_InsufficientBalance(t *testing.T) {
 	err = json.NewDecoder(resp.Body).Decode(&result)
 	require.NoError(t, err, "Failed to decode response")
 
-	err = db.Find(&fromWallet, "address = ?", fromAddr).Error
-	require.NoError(t, err, "Failed to find fromWallet")
+	err = db.Find(&srcWallet, "address = ?", srcAddress).Error
+	require.NoError(t, err, "Failed to find srcWallet")
 
-	err = db.Find(&toWallet, "address = ?", toAddr).Error
-	require.NoError(t, err, "Failed to find toWallet")
+	err = db.Find(&dstWallet, "address = ?", dstAddress).Error
+	require.NoError(t, err, "Failed to find dstWallet")
 
 	// Then
 	assert.Equal(t, http.StatusOK, resp.StatusCode, "Expected HTTP status OK")
 	assert.NotEmpty(t, result.Errors, "Expected GraphQL errors")
 	assert.Contains(t, result.Errors[0].Message, "insufficient balance", "Expected error message about insufficient balance")
-	assert.Equal(t, int32(1000000), fromWallet.Balance, "Expected unchanged fromWallet balance")
-	assert.Equal(t, int32(0), toWallet.Balance, "Expected unchanged toWallet balance")
+	assert.Equal(t, int32(1000000), srcWallet.Balance, "Expected unchanged srcWallet balance")
+	assert.Equal(t, int32(0), dstWallet.Balance, "Expected unchanged dstWallet balance")
 }
 
-func TestGraphMutationTransfer_FromWalletNotFound(t *testing.T) {
+func TestGraphMutationTransfer_srcWalletNotFound(t *testing.T) {
 	// Given
 	_, server := newTestServer(t)
 	defer server.Close()
-	fromAddr := "0x5000000000000000000000000000000000000000"
-	toAddr := "0x1000000000000000000000000000000000000000"
+	srcAddress := "0x5000000000000000000000000000000000000000"
+	dstAddress := "0x1000000000000000000000000000000000000000"
 	amount := 100
-	query := buildTransferQuery(fromAddr, toAddr, amount)
+	query := buildTransferQuery(srcAddress, dstAddress, amount)
 	var result TransferResponse
 
 	// When
@@ -248,7 +248,7 @@ func TestGraphMutationTransfer_MissingField(t *testing.T) {
 	defer server.Close()
 	query := `
 		mutation {
-			transfer(from_address: "0xAlice", to_address: "0xBob") {
+			transfer(srcAddress: "0xAlice", dstAddress: "0xBob") {
 				balance
 			}
 		}
@@ -273,10 +273,10 @@ func TestGraphMutationTransfer_ResponseStructure(t *testing.T) {
 	// Given
 	_, server := newTestServer(t)
 	defer server.Close()
-	fromAddr := "0x0000000000000000000000000000000000000000"
-	toAddr := "0x1000000000000000000000000000000000000000"
+	srcAddress := "0x0000000000000000000000000000000000000000"
+	dstAddress := "0x1000000000000000000000000000000000000000"
 	amount := 100
-	query := buildTransferQuery(fromAddr, toAddr, amount)
+	query := buildTransferQuery(srcAddress, dstAddress, amount)
 	var response map[string]interface{}
 
 	// When
