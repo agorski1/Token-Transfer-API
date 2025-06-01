@@ -44,6 +44,22 @@ func (s *WalletService) Transfer(ctx context.Context, srcAddress, dstAddress str
 	return nil, fmt.Errorf("transaction failed after %d retries: %w", maxRetries, lastErr)
 }
 
+func (s *WalletService) CanAfford(ctx context.Context, address string, amount int32) (bool, error) {
+	if address == "" {
+		return false, fmt.Errorf("address is required")
+	}
+
+	wallet, err := s.repo.GetWalletByAddress(ctx, address)
+	if err != nil {
+		if err == ErrWalletNotFound {
+			return false, fmt.Errorf("wallet not found")
+		}
+		return false, fmt.Errorf("failed to fetch wallet: %w", err)
+	}
+
+	return s.canAfford(wallet, amount), nil
+}
+
 func (s *WalletService) tryTransfer(ctx context.Context, srcAddress, dstAddress string, amount int32) (*model.TransferResult, error) {
 	var responseSrcWallet *model.Wallet
 	err := s.repo.WithTransaction(ctx, func(r WalletRepository) error {
