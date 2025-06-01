@@ -10,19 +10,35 @@ import (
 	"github.com/99designs/gqlgen/graphql/handler/lru"
 	"github.com/99designs/gqlgen/graphql/handler/transport"
 	"github.com/99designs/gqlgen/graphql/playground"
+	"github.com/agorski1/token-transfer-api/db"
 	"github.com/agorski1/token-transfer-api/internal/graph"
+	"github.com/agorski1/token-transfer-api/internal/wallet"
+	"github.com/joho/godotenv"
 	"github.com/vektah/gqlparser/v2/ast"
 )
 
 const defaultPort = "8080"
 
 func main() {
-	port := os.Getenv("PORT")
+	err := godotenv.Load()
+	if err != nil {
+		log.Println("Warning: .env file not found, using env variables if set")
+	}
+
+	db, err := db.Connect()
+	if err != nil {
+		log.Fatalf("failed to connect to database: %v", err)
+	}
+
+	port := os.Getenv("PORT_GRAPHQL")
 	if port == "" {
 		port = defaultPort
 	}
 
-	srv := handler.New(graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{}}))
+	repo := wallet.NewWalletRepository(db)
+	service := wallet.NewWalletService(repo)
+
+	srv := handler.New(graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{service}}))
 
 	srv.AddTransport(transport.Options{})
 	srv.AddTransport(transport.GET{})
